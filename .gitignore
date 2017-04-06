@@ -1,0 +1,374 @@
+import java.lang.Math;
+public class BlackRedTree{
+    static boolean Red = true;
+    static boolean Black = false;
+    
+    private Node root = Node.NIL;
+
+    
+    private void rotateLeft(Node x){                     //rotate
+counterclockwise 90 degree at Node x
+        Node y= x.right;
+        x.right = y.left;                               // these are translated
+from the pseudocode in book.
+        if ( y.left != Node.NIL){
+            y.left.p = x;   
+        }
+        y.p = x.p;
+        if ( x.p == Node.NIL){
+            root = y;
+        } else if ( x == x.p.left){
+            x.p.left = y;
+        } else {
+            x.p.right = y;
+        }
+        y.left = x;
+        x.p = y;
+    }
+
+    private void rotateRight( Node y){               // just change the right to
+left, change the left to right
+        Node x = y. left;
+        y.left = x.right;
+        if ( x.left != Node.NIL){
+            x.right.p = y;
+        }
+        x.p = y.p;
+        if ( y.p == Node.NIL){
+            root = x;
+        } else if (y == y.p.right){
+            y.p.right = x;
+        } else {
+            y.p.left = x;
+        }
+        x.right = y;
+        y.p = x;
+    }
+
+    public void add ( String key, String value){
+        Node z = new Node( key, value, Black);
+        Node y = Node.NIL;
+        Node x = root;
+        while ( x != Node.NIL){
+            y = x;
+            int i = z.key.compareTo(x.key);             // if the key has
+already existed, then we change the value
+            if (i == 0){
+                x.value = value;
+                return;
+            } else if (i < 0){
+                x = x.left;             
+            } else {
+                x = x.right;
+            }
+        }
+        z.p = y;
+        if ( y == Node.NIL){                              // if there is no Node
+in tree
+            root = z;
+        } else if ( z.key.compareTo(y.key) < 0){           // else put the Node
+to the right/left side of parent
+            y.left = z;
+        } else {
+            y.right = z;
+        }
+        z.left = Node.NIL;
+        z.right = Node.NIL;
+        z.color = Red;
+        fixUp (z);                                         // fix up the color
+and balance
+    }
+
+    private void fixUp( Node z){
+        while( z.p.color == Red){
+            if(z.p == z.p.p.left){
+                Node y = z.p.p.right;
+                if ( y.color == Red ){                                      
+//case 1 : z's uncle is red
+                    z.p.color = Black;
+                    y.color = Black;
+                    z.p.p.color = Red;
+                    z = z.p.p;
+                    
+                } else {
+                    if (z == z.p.right){                                    
+//case 2 : z's uncle is black , and z is the right kid 
+                
+                        z= z.p;
+                        rotateLeft(z);
+                    }
+                    z.p.color = Black;                                     
+//case 3: z's uncle is Black,and z is the left kid
+                    z.p.p.color = Red;
+                    rotateRight(z.p.p); 
+                }
+            } else {                                                        //
+mirror to the above part
+                Node y = z.p.p.left;
+                if ( y.color == Red ){
+                    z.p.color = Black;
+                    y.color = Black;
+                    z.p.p.color = Red;
+                    z = z.p.p;
+                } else {
+                    if (z == z.p.left){
+                
+                        z= z.p;
+                        rotateRight(z);
+                    }
+                    z.p.color = Black;
+                    z.p.p.color = Red;
+                    rotateLeft(z.p.p);  
+                }
+            } 
+        }
+        root.color = Black;
+    }
+
+    private void transplant( Node u, Node v){                         // put v
+in u's position and delete u
+        if (u.p == Node.NIL){
+            root = v;
+        } else if ( u == u.p.left){
+            u.p.left = v;
+        } else {
+            u.p.right = v;
+        }
+        v.p = u.p;
+    }
+
+    public void remove ( String key ){
+        Node z1 = root;
+        Node z2 = root;
+        Node z = Node.NIL;
+        if (z1 == Node.NIL){                                                    
+    // if there is no Node in the tree, then do nothing 
+            return;
+        }
+        while ( z2 != Node.NIL){
+            z = z1;
+            if (z == Node.NIL){                                                 
+ // if the key cannot be found, then do nothing
+                return;
+            }
+            int i = key.compareTo(z.key);                                       
+// locate the node we want to delete
+            if (i == 0){
+                z2 = Node.NIL;              
+            } else if (i  < 0){
+                z1 = z1.left;               
+            } else {
+                z1 = z1.right;
+            }
+        }
+        Node y = z;
+        Node x = z.p;
+        boolean yOC = y.color;
+        if ( z.left == Node.NIL){                          // if the node we
+delete is the leaf of the tree
+            x = z.right;
+            transplant(z,z.right);
+        } else if ( z.right == Node.NIL){
+            x = z.left;
+            transplant( z, z.left);
+        } else {                                          // if the node we
+delete is in the middle of the tree
+            y = min(z.right);
+            yOC = y.color;
+            x = y.right;
+            if ( y.p == z){
+                x.p = y;                
+            } else{
+                transplant(y,y.right);
+                y.right = z.right;
+                y.right.p = y;
+            }
+            transplant(z,y);
+            y.left = z.left;
+            y.left.p = y;
+            y.color = z.color;
+        }
+        if ( yOC == Black){                                      // if the
+deleted Node is red then it will not harm the number of black ones
+            dFixUp(x);
+        }
+    }
+
+    private void dFixUp ( Node x){
+        Node w = Node.NIL;
+        while(  x.color == Black && x != root){             // if the tree after
+we delete only has the root, then just make sure it is black
+            if ( x == x .p.left){
+                w = x.p.right;
+                if (w.color == Red){                                 // case1:
+if the x's sibling w is red
+                    w.color = Black;
+                    x.p.color = Red;
+                    rotateLeft(x.p);
+                    w = x.p.right;
+                }
+                if (w.left.color == Black && w.right.color == Black){      
+//case 2: if w is black, and both of its children are black
+                    w.color = Red;
+                    x = x.p;
+                } else {
+                    if (w.right.color == Black){                        // case
+3: w is black, and w's left child is red , right is black
+                        w.left.color = Black;
+                        w.color = Red;
+                        rotateRight(w);
+                        w = x.p.right;
+                    }
+                    w.color = x.p.color;                               // case
+4: w is black, and its right child is red
+                    x.p.color = Black;
+                    w.right.color = Black;
+                    rotateLeft(x.p);
+                    x = root;
+                }
+            } else{
+                w = x.p.left;
+                if (w.color == Red){
+                    w.color = Black;
+                    x.p.color = Red;
+                    rotateRight(x.p);
+                    w = x.p.left;
+                }
+                if (w.right.color == Black && w.left.color == Black){
+                    w.color = Red;
+                    x = x.p;
+                } else {
+                    if (w.left.color == Black){
+                        w.right.color = Black;
+                        w.color = Red;
+                        rotateLeft(w);
+                        w = x.p.left;
+                    }
+                    w.color = x.p.color;
+                    x.p.color = Black;
+                    w.left.color = Black;
+                    rotateRight(x.p);
+                    x = root;
+                }
+            }
+        }
+        x.color = Black;
+    }
+
+    private Node min ( Node x){                              // find the min
+Node of the (sub)tree
+        Node y = x;
+        while ( x != Node.NIL){
+            y = x;
+            x = x.left;
+        }
+        return y;
+    }
+
+
+    public String search ( String key){                        // just like the
+BST
+        Node x = root;
+        while ( x != Node.NIL){
+            int i = key.compareTo(x.key);
+            if ( i == 0){
+                return x.value;
+            } else if ( i < 0){
+                x = x.left;
+            } else {
+                x = x.right;
+            }
+        }
+        return null;
+    }
+
+    public String toString(){
+        return toPrint(root);
+    }
+    
+    private String toPrint( Node x){
+        if ( x == Node.NIL){
+            return "()";
+        }else {
+            return "(" + color(x) + x.key + ":" + x.value +  toPrint(x.left) + 
+toPrint(x.right) + ")";
+        }
+    }
+    
+    private String color(Node x){
+        if (x.color == Red){
+            return "*";
+        } else {
+            return "#";
+        }
+    }
+
+
+    public static void main(String[] args){
+        BlackRedTree t= new BlackRedTree();
+        /*t.add("1", "a");
+        t.add("2", "b");
+        t.add("3", "c");
+        t.add("3", "c");
+        t.add("4", "d");
+        t.add("5", "e");
+        t.add("6", "f");
+        t.add("7", "g");
+        t.add("8", "h");
+        t.remove("7");
+        t.remove("1");*/
+        String b = "";
+        String c = "";
+        for ( int a = 0; a < 10; a++){
+            int i = (int)Math.ceil(Math.random()*9);
+            int j = (int)Math.ceil(Math.random()*9);
+            b = i + b;
+            c = j + c;
+            t.add(b,c );
+            System.out.println("add key:" + b + "add value:" + c);
+            System.out.println(t.toString());
+            b = "";
+            c = "";
+        }
+        
+        for (int a =0; a<5; a++){
+            int i = (int)Math.ceil(Math.random()*9);
+            b = i + b;
+            System.out.println("search key:" + b);
+            System.out.println(t.search(b));
+            b = "";
+        }
+        
+        for ( int a = 0; a < 10; a++){
+            int i = (int)Math.ceil(Math.random()*9);
+            b = i + b;
+            t.remove(b);
+            System.out.println("remove key:" + b);
+            System.out.println(t.toString());
+            b = "";
+        }
+        
+        
+        
+        
+        //System.out.println(t.toString());
+    }
+
+
+
+}
+
+ class Node {
+     static Node NIL = new Node ( null, null, BlackRedTree.Black);              
+         //creating a NIL to avoid the nullPointer issue in Fixup
+     String key;
+     String value;
+     Node left,right,p;
+     boolean color;
+
+    public Node ( String key, String value, boolean color){
+        this.key = key;
+        this.value = value;
+        this.color = color;
+    }
+}
